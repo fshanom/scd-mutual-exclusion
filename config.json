@@ -1,0 +1,10 @@
+{
+    "IP" : "127.0.0.1",
+    "port" : 4001,
+    "buffer_size" : 256,
+    "log_file" : "resultado.txt",
+    "message_delimiter" : "|",
+    "message_terminator" : "#",
+    "delay" : 5,
+    "total_processes" : 3
+  }
