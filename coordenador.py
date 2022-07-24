@@ -17,6 +17,7 @@
     # 3) Encerrar a execução
 # As duas threads (interface e a de algoritmo) acessam a mesma fila, então devem ser sincronizadas.
 
+#Importação de Bibliotecas
 from asyncio import Queue
 from datetime import datetime
 import json
@@ -27,11 +28,8 @@ import threading
 import time
 import util
 
-semaphore = threading.Semaphore()
 
 #Arquivo de log
-#logging.basicConfig(filename='resultado.txt', filemode='w', level=logging.INFO)
-
 #Carrega as configurações do server
 with open("config.json", "r") as configFile:
     config = json.load(configFile)
@@ -45,12 +43,13 @@ REQ = "REQUEST"
 GRT = "GRANT"
 REL = "RELEASE"
 
-#nÃO SEI PRA QUE SERVE
+#Geração da fila dos processos
 thread_pool = []
 lock = threading.Lock()
-
 fila = util.Queue()
+semaphore = threading.Semaphore()
 
+#Criação da classe/thread do Coordenador | recebe as menssagens dos processos
 class ThreadCoordenador(Thread):
     #sobe socket do coordenador na porta port
     def __init__(self, socket, ip, port):
@@ -61,13 +60,11 @@ class ThreadCoordenador(Thread):
         self.port = port
         self.send_msg_queue = util.Queue()
 
-    #método que escreve na rc
+    #Método que escreve na Região Crítica
     def run(self):
-        #logging.info("Conectado a " + self.ip + ":" + str(self.port))
         data = ""
-        #self.console()
         while True:
-            #pega a mensagem do processo
+            #Pega a mensagem dos Processos
             data = str(data) + str(self.socket.recv(BUFFER_SIZE))
             if data:
                 while MSG_TERMINATOR in data:
@@ -75,18 +72,18 @@ class ThreadCoordenador(Thread):
                     msg = data[:pos]
                     data = data[pos+1:]
 
-                    #abrir o arquivo de log em modo append
                     #obtem a hora atual
                     datahora = msg.split(DELIMITER)[0]
-                    print(datahora)
 
                     #escreve o id e a hora atual no final do arquivo
-
                     if "PID" in msg:
                         self.process_id = msg.split(":")[1]
+
+                    #Verifica se a mensagem enviada é um REQUEST para enviar  o GRANT
                     if REQ in msg or REL in msg:
                         self.send_msg_queue.push(msg)
-
+                        
+                        #Preenche o log com a mensagem de GRANT para o processo
                         log = open("resultado.txt", "a")
                         now = datetime.utcnow()
                         current_time = now.strftime("%H:%M:%S.%f")
@@ -94,28 +91,28 @@ class ThreadCoordenador(Thread):
                         log.write(current_time + " | GRANT | Processo " + data + " | Teste \n")
                         log.close()
                         fila.push(data)
+
+                        #Entra na Região Critica
                         self.escreveRC(fila)
 
+                    #Verifica se a mensagem enviada é um GRANT para lockar
                     if GRT in msg:
                         with lock:
                             time.sleep(DELAY)
                             self.forward_reply_message(msg)
-
+    #Função da Região Critica
     def escreveRC(self, pros):
-
-        #for thread in thread_pool:
-            #if int(self.process_id) != int(thread.process_id):
+        #Verifica se a fila de processos está vazia
         while not pros.isEmpty():
-
+                #Pega a menssagem do primeiro processo da fila
                 message = pros.pop()
-                #print(message + " está mandando mensagem")
                 now = datetime.utcnow()
                 current_time = now.strftime("%H:%M:%S.%f")
                 semaphore.acquire()
-                #thread.socket.send(message + MSG_TERMINATOR)
                 log = open("resultado.txt", "a")
                 now = datetime.utcnow()
                 current_time = now.strftime("%H:%M:%S.%f")
+                #Preenche o log com a mensagem de RELEASE para o processo
                 log.write(current_time + " | RELEASE | Processo " + message + " | Teste \n")
                 log.close()
                 semaphore.release()
@@ -132,10 +129,12 @@ class ThreadCoordenador(Thread):
                 time.sleep(DELAY)
                 semaphore.release()
     
+#Criação da thread do terminal
 class ThreadConsole(Thread):
     def __init__(self):
         Thread.__init__(self)
     
+    #Verifica qual ação escolhemos e retona o valor correspondente
     def run(self):
         while True:
             print("---------- MENU ----------\n")
@@ -153,7 +152,9 @@ class ThreadConsole(Thread):
                 for line in lines:
                     print(line)
                 '''
-                print(fila)
+                print(fila.list)
+            if(op == '2'):
+                print(thread_pool)
             if(op == '3'):
                 print("Fim da execução")
                 break
@@ -161,6 +162,7 @@ class ThreadConsole(Thread):
 
 
 if __name__ == "__main__":
+    #Iniciando do socket
     host_IP = config["IP"]
     host_port = config["port"]
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -171,6 +173,7 @@ if __name__ == "__main__":
     threadConsole = ThreadConsole()
     threadConsole.start()
 
+    #Thread do Coordenador
     while True:
         server_socket.listen(5)
         (connection_socket, (ip, port)) = server_socket.accept()
