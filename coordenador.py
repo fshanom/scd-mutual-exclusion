@@ -45,10 +45,16 @@ REQ = "REQUEST"
 GRT = "GRANT"
 REL = "RELEASE"
 
-#nÃO SEI PRA QUE SERVE
+#dicionario para guardar quantas vezes cada processo foi atendido
+dictProcessos = {}
+
+#guarda as thread na fila
 thread_pool = []
+
+#lock da RC
 lock = threading.Lock()
 
+#fila de mensagens
 fila = util.Queue()
 
 class ThreadCoordenador(Thread):
@@ -78,7 +84,7 @@ class ThreadCoordenador(Thread):
                     #abrir o arquivo de log em modo append
                     #obtem a hora atual
                     datahora = msg.split(DELIMITER)[0]
-                    print(datahora)
+                    #print(datahora)
 
                     #escreve o id e a hora atual no final do arquivo
 
@@ -94,6 +100,11 @@ class ThreadCoordenador(Thread):
                         log.write(current_time + " | GRANT | Processo " + data + " | Teste \n")
                         log.close()
                         fila.push(data)
+
+                        #adiciona processo no dicionario que registra quantas vezes cada processo foi atendido
+                        processo = {'Processo '+data:0}
+                        dictProcessos.update(processo) 
+
                         self.escreveRC(fila)
 
                     if GRT in msg:
@@ -120,6 +131,11 @@ class ThreadCoordenador(Thread):
                 log.close()
                 semaphore.release()
 
+                #atualiza contador
+                key = 'Processo ' + message
+                if key in dictProcessos:
+                    dictProcessos[key] += 1
+
     def forward_reply_message(self, message):
         pid = int(message.split(DELIMITER)[1])
         #print("Send  msg: " + message + "to " + str(pid))
@@ -144,20 +160,14 @@ class ThreadConsole(Thread):
             print("3) Encerrar a execução\n")
             print("Digite a opção desejada:")
             op = input()
-            #print(op)
             
             if(op == '1'):
-                '''
-                texto = open("resultado.txt", "r")
-                lines = texto.readlines()
-                for line in lines:
-                    print(line)
-                '''
-                print(fila)
+                print(thread_pool)
+            if(op == '2'):
+                print(dictProcessos)
             if(op == '3'):
                 print("Fim da execução")
                 break
-                #self.is_alive = False
 
 
 if __name__ == "__main__":
