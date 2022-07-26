@@ -13,7 +13,7 @@
 # Verificar os GRANT e RELEASE, apóis um grant sempre tem release. A ordem dos processos das mensagens REQUEST deve ser a mesma que a ordem dos processos da mensagem Release.
 
 
-
+#Importa bibliotecas
 from datetime import datetime
 import logging
 import socket
@@ -26,12 +26,11 @@ import argparse
 with open("config.json", "r") as configFile:
     config = json.load(configFile)
 
+#Incia o socket
 serv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#serv.connect(config["IP"],config["port"])
 
-#Log da RC
-logging.basicConfig(filename='resultado.txt', filemode='w', level=logging.INFO)
 
+#Cria classe do processo
 class Processo:
     def __init__(self, processo_id, num_processo):
         self.id = processo_id
@@ -39,42 +38,27 @@ class Processo:
         self.number_set = []
         self.processo_count = num_processo
         self.number_set_idx = 0
-        #self.get_number_set()
         print("Iniciando Processo "+ str(self.id))
     
-    #Método que solicita o acesso para escrita na RC
+    #Método que solicita o acesso para escrita na Região Critica
     def request(self):
-        #while len(self.number_set) > self.number_set_idx:
-
+        #Anota no txt o REQUESt 
         log = open("resultado.txt", "a")
         now = datetime.utcnow()
         current_time = now.strftime("%H:%M:%S.%f")
         log.write(current_time + " | REQUEST | Processo " + str(self.id) + " | Teste \n")
         log.close()
-        #logging.info( current_time + " | REQUEST | Processo " + str(self.id) + " | Teste")
 
-        # lamport
-        # 1 envia pedido com timestamp para todos os processos incluindo a si mesmo
-        # 2 aguarda confirmação de todos os processos
-        # 3 se o pedido estiver na cabeça da fila e todas as confirmações chegarem, entra na RC
-
-
+        #Realiza a coneção no coordenador
         connection = self.__connect(True)
+
+        #Menssagem que será enviada e envio
         msg = current_time + ' | REQUEST #' + str(self.id)
         connection.sendall(msg.encode())
         print('Processo ' + str(self.id) + ' mandou solicitação de escrita Coordenador')
         self.connections.append(connection)
         self.number_set_idx = self.number_set_idx + 1
         time.sleep(3)    
-    
-    
-    def get_number_set(self):
-        num_file = open(config["log_file"], 'r')
-        lines = num_file.readlines()
-        for i in range(0, len(lines)):
-            if i % self.processo_count == self.id:
-                self.number_set.append(int(lines[i]))
-        num_file.close()
 
     #Método que conecta no socket do coordenador
     def __connect(self, retry):
@@ -91,22 +75,24 @@ class Processo:
                 print("Processo " + str(self.id) + " deu Erro")
         finally:
             return to_socket
-
+    #Fechar processo
     def close(self):
         self.connection.close()
 
 def main():
-    #open('cs.txt', 'w').close()
+    #Inicia script com parametro, parametro é a quantidade de processos que serão executados
     arguments = get_parser().parse_args()
     p_counts = arguments.num_processos
     clients = []
     cid = 1
 
+    #For para incluir os processos numa lista
     for p in range(p_counts):
         pross = Processo(cid,p_counts)
         clients.append(pross)
         cid = cid + 1
 
+    #For para executar request de cada cliente da lista
     for c in clients:
         try:
             c.request()
@@ -114,7 +100,7 @@ def main():
         except Exception as e:
             print(str(e))
 
-
+#Configura argumento do script
 def get_parser():
     parser = argparse.ArgumentParser(description='Processos')
     parser.add_argument('num_processos', type=int)
