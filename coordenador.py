@@ -34,6 +34,9 @@ import util
 with open("config.json", "r") as configFile:
     config = json.load(configFile)
 
+#Tamanho da msg
+f = 26
+
 #Variáveis globais
 BUFFER_SIZE = config["buffer_size"]
 DELIMITER = config["message_delimiter"]
@@ -96,7 +99,13 @@ class ThreadCoordenador(Thread):
                         now = datetime.utcnow()
                         current_time = now.strftime("%H:%M:%S.%f")
                         data =  data.replace("'", "")
-                        log.write(current_time + " | GRANT | Processo " + data + " | Teste \n")
+
+                        #Mensagem de grant tem identificador 2
+                        msg = current_time + "|" + str(2) + "|" + data + "|"
+                        msg = msg.ljust(f,"0")
+                        msg = msg + '\n'
+
+                        log.write(msg)
                         log.close()
                         fila.push(data)
 
@@ -124,7 +133,12 @@ class ThreadCoordenador(Thread):
                 now = datetime.utcnow()
                 current_time = now.strftime("%H:%M:%S.%f")
                 #Preenche o log com a mensagem de RELEASE para o processo
-                log.write(current_time + " | RELEASE | Processo " + message + " | Teste \n")
+                #Mensagem de release tem identificador 3
+                msg = current_time + "|" + str(3) + "|" + message + "|"
+                msg = msg.ljust(f,"0")
+                msg = msg + '\n'
+
+                log.write(msg)
                 log.close()
                 semaphore.release()
 
@@ -186,7 +200,7 @@ if __name__ == "__main__":
         server_socket.listen(5)
         (connection_socket, (ip, port)) = server_socket.accept()
 
-        #Thread do coordenador
+        #Instancia thread do coordenador
         threadCoordenador = ThreadCoordenador(connection_socket, ip, port)
         threadCoordenador.start()
 

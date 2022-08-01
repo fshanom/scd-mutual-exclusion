@@ -29,6 +29,8 @@ with open("config.json", "r") as configFile:
 #Incia o socket
 serv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
+#Definição do tamanho da mensagem: 10 bytes da mensagem + 16 que é o tamanho do timestamp
+f = 26
 
 #Cria classe do processo
 class Processo:
@@ -39,6 +41,7 @@ class Processo:
         self.processo_count = num_processo
         self.number_set_idx = 0
         print("Iniciando Processo "+ str(self.id))
+        
     
     #Método que solicita o acesso para escrita na Região Critica
     def request(self):
@@ -46,7 +49,11 @@ class Processo:
         log = open("resultado.txt", "a")
         now = datetime.utcnow()
         current_time = now.strftime("%H:%M:%S.%f")
-        log.write(current_time + " | REQUEST | Processo " + str(self.id) + " | Teste \n")
+        #Mensagem de request tem identificador 1
+        msg = current_time + "|" + str(1) + "|" + str(self.id) + "|"
+        msg = msg.ljust(f,"0")
+        msg = msg + '\n'
+        log.write(msg)
         log.close()
 
         #Realiza a coneção no coordenador
@@ -96,7 +103,7 @@ def main():
     for c in clients:
         try:
             c.request()
-            time.sleep(5)
+            #time.sleep(5)
         except Exception as e:
             print(str(e))
 
