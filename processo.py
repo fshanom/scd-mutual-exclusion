@@ -17,6 +17,7 @@
 from datetime import datetime
 import logging
 import socket
+import string
 import time
 from asyncio import Queue
 import json
@@ -34,13 +35,14 @@ f = 26
 
 #Cria classe do processo
 class Processo:
-    def __init__(self, processo_id, num_processo):
+    def __init__(self, processo_id, nom_processo,num_processo):
         self.id = processo_id
         self.connections = []
         self.number_set = []
         self.processo_count = num_processo
         self.number_set_idx = 0
-        print("Iniciando Processo "+ str(self.id))
+        self.nome = nom_processo
+        print("Iniciando Processo "+ self.nome)
         
     
     #Método que solicita o acesso para escrita na Região Critica
@@ -50,7 +52,7 @@ class Processo:
         now = datetime.utcnow()
         current_time = now.strftime("%H:%M:%S.%f")
         #Mensagem de request tem identificador 1
-        msg = current_time + "|" + str(1) + "|" + str(self.id) + "|"
+        msg = current_time + "|" + str(1) + "|" + self.nome + ' - ' +str(self.id) + "|"
         msg = msg.ljust(f,"0")
         msg = msg + '\n'
         log.write(msg)
@@ -60,7 +62,7 @@ class Processo:
         connection = self.__connect(True)
 
         #Menssagem que será enviada e envio
-        msg = current_time + ' | REQUEST #' + str(self.id)
+        msg = current_time + ' | REQUEST #' + self.nome + ' - ' +str(self.id)
         connection.sendall(msg.encode())
         print('Processo ' + str(self.id) + ' mandou solicitação de escrita Coordenador')
         self.connections.append(connection)
@@ -90,12 +92,13 @@ def main():
     #Inicia script com parametro, parametro é a quantidade de processos que serão executados
     arguments = get_parser().parse_args()
     p_counts = arguments.num_processos
+    p_nome = arguments.nom_processo
     clients = []
     cid = 1
 
     #For para incluir os processos numa lista
     for p in range(p_counts):
-        pross = Processo(cid,p_counts)
+        pross = Processo(cid,p_nome,p_counts)
         clients.append(pross)
         cid = cid + 1
 
@@ -110,6 +113,7 @@ def main():
 #Configura argumento do script
 def get_parser():
     parser = argparse.ArgumentParser(description='Processos')
+    parser.add_argument('nom_processo', type=str)
     parser.add_argument('num_processos', type=int)
 
     return parser

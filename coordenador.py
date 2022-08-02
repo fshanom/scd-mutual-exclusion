@@ -35,7 +35,7 @@ with open("config.json", "r") as configFile:
     config = json.load(configFile)
 
 #Tamanho da msg
-f = 26
+f = 32
 
 #Variáveis globais
 BUFFER_SIZE = config["buffer_size"]
@@ -76,6 +76,7 @@ class ThreadCoordenador(Thread):
         while True:
             #Pega a mensagem dos Processos
             data = str(data) + str(self.socket.recv(BUFFER_SIZE))
+            
             if data:
                 while MSG_TERMINATOR in data:
                     pos = data.find(MSG_TERMINATOR)
@@ -92,6 +93,7 @@ class ThreadCoordenador(Thread):
 
                     #Verifica se a mensagem enviada é um REQUEST para enviar  o GRANT
                     if REQ in msg or REL in msg:
+                        threading.Lock()
                         self.send_msg_queue.push(msg)
                         
                         #Preenche o log com a mensagem de GRANT para o processo
@@ -120,6 +122,7 @@ class ThreadCoordenador(Thread):
                         with lock:
                             time.sleep(DELAY)
                             self.forward_reply_message(msg)
+                        
     #Função da Região Critica
     def escreveRC(self, pros):
         #Verifica se a fila de processos está vazia
