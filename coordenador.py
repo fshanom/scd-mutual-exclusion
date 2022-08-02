@@ -18,7 +18,6 @@
 # As duas threads (interface e a de algoritmo) acessam a mesma fila, então devem ser sincronizadas.
 
 #Importação de Bibliotecas
-from asyncio import Queue
 from datetime import datetime
 import json
 import logging
@@ -27,7 +26,7 @@ from threading import Thread
 import threading
 import time
 import util
-
+import queue
 
 #Arquivo de log
 #Carrega as configurações do server
@@ -35,7 +34,7 @@ with open("config.json", "r") as configFile:
     config = json.load(configFile)
 
 #Tamanho da msg
-f = 32
+f = 40
 
 #Variáveis globais
 BUFFER_SIZE = config["buffer_size"]
@@ -58,6 +57,8 @@ lock = threading.Lock()
 #fila de mensagens
 fila = util.Queue()
 semaphore = threading.Semaphore()
+
+processQueue = queue.PriorityQueue()
 
 #Criação da classe/thread do Coordenador | recebe as menssagens dos processos
 class ThreadCoordenador(Thread):
@@ -87,12 +88,11 @@ class ThreadCoordenador(Thread):
                     datahora = msg.split(DELIMITER)[0]
                     #print(datahora)
 
-                    #escreve o id e a hora atual no final do arquivo
-                    if "PID" in msg:
-                        self.process_id = msg.split(":")[1]
+                    #insere o pedido de request na fila de prioridade
+                    #processQueue.put((datahora, data))
 
                     #Verifica se a mensagem enviada é um REQUEST para enviar  o GRANT
-                    if REQ in msg or REL in msg:
+                    if (REQ in msg or REL in msg):
                         threading.Lock()
                         self.send_msg_queue.push(msg)
                         
@@ -100,6 +100,7 @@ class ThreadCoordenador(Thread):
                         log = open("resultado.txt", "a")
                         now = datetime.utcnow()
                         current_time = now.strftime("%H:%M:%S.%f")
+                        #data = processQueue.get()
                         data =  data.replace("'", "")
 
                         #Mensagem de grant tem identificador 2
@@ -202,6 +203,9 @@ if __name__ == "__main__":
     while True:
         server_socket.listen(5)
         (connection_socket, (ip, port)) = server_socket.accept()
+
+        #print(processQueue.queue)
+
 
         #Instancia thread do coordenador
         threadCoordenador = ThreadCoordenador(connection_socket, ip, port)

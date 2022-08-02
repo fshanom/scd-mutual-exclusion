@@ -1,3 +1,3 @@
 import os
 
-os.system('python processo.py teste 3 & python processo.py batata 3 & python processo.py carro 3')
+os.system('python processo.py Arrasca 2 & python processo.py Gabi 2 & python processo.py Vidal 2')
