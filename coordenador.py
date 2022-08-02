@@ -60,6 +60,8 @@ semaphore = threading.Semaphore()
 
 processQueue = queue.PriorityQueue()
 
+
+
 #Criação da classe/thread do Coordenador | recebe as menssagens dos processos
 class ThreadCoordenador(Thread):
     #sobe socket do coordenador na porta port
@@ -113,8 +115,9 @@ class ThreadCoordenador(Thread):
                         fila.push(data)
 
                         #adiciona processo no dicionario que registra quantas vezes cada processo foi atendido
-                        processo = {'Processo '+data:0}
-                        dictProcessos.update(processo) 
+                        if dictProcessos.get('Processo '+ data) == None:
+                            processo = {'Processo '+data:0}
+                            dictProcessos.update(processo) 
 
                         self.escreveRC(fila)
 
@@ -148,8 +151,11 @@ class ThreadCoordenador(Thread):
 
                 #atualiza contador
                 key = 'Processo ' + message
-                if key in dictProcessos:
-                    dictProcessos[key] += 1
+                aux_count = dictProcessos.get(key) + 1
+                dictProcessos.update({key:aux_count})
+                
+                
+                
 
     def forward_reply_message(self, message):
         pid = int(message.split(DELIMITER)[1])
