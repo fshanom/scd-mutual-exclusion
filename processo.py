@@ -31,7 +31,7 @@ with open("config.json", "r") as configFile:
 serv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 #Definição do tamanho da mensagem: 10 bytes da mensagem + 16 que é o tamanho do timestamp
-f = 26
+f = 32
 
 #Cria classe do processo
 class Processo:
